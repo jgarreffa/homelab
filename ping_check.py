@@ -8,9 +8,9 @@ __version__ = "1.0.0"
 class PingCheck(AgentCheck):
     """
     Custom Datadog Agent check that pings a host and submits:
-      - network.ping.avg_rtt   (ms)
-      - network.ping.min_rtt   (ms)
-      - network.ping.max_rtt   (ms)
+      - network.ping.avg_rtt     (ms)
+      - network.ping.min_rtt     (ms)
+      - network.ping.max_rtt     (ms)
       - network.ping.packet_loss (%)
       - network.ping.can_connect (service check: OK / CRITICAL)
     """
@@ -18,23 +18,25 @@ class PingCheck(AgentCheck):
     SERVICE_CHECK_NAME = "network.ping.can_connect"
 
     def check(self, instance):
-        host = instance.get("host", "8.8.8.8")
-        count = int(instance.get("count", 5))
+        host    = instance.get("host", "8.8.8.8")
+        count   = int(instance.get("count", 5))
         timeout = int(instance.get("timeout", 30))
-        tags = instance.get("tags", []) + [f"target_host:{host}"]
+        tags    = instance.get("tags", []) + ["target_host:{0}".format(host)]
 
         try:
             result = subprocess.run(
                 ["ping", "-c", str(count), "-W", "5", host],
-                capture_output=True,
-                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 timeout=timeout,
             )
+
+            output = result.stdout.decode("utf-8")
 
             # Parse RTT stats: rtt min/avg/max/mdev = 10.1/12.4/15.7/1.2 ms
             rtt_match = re.search(
                 r"rtt min/avg/max/mdev = ([\d.]+)/([\d.]+)/([\d.]+)/([\d.]+)",
-                result.stdout,
+                output,
             )
             if rtt_match:
                 self.gauge("network.ping.min_rtt", float(rtt_match.group(1)), tags=tags)
@@ -42,7 +44,7 @@ class PingCheck(AgentCheck):
                 self.gauge("network.ping.max_rtt", float(rtt_match.group(3)), tags=tags)
 
             # Parse packet loss: "0% packet loss" or "100% packet loss"
-            loss_match = re.search(r"(\d+)% packet loss", result.stdout)
+            loss_match = re.search(r"(\d+)% packet loss", output)
             if loss_match:
                 self.gauge(
                     "network.ping.packet_loss", float(loss_match.group(1)), tags=tags
@@ -55,7 +57,7 @@ class PingCheck(AgentCheck):
                     self.SERVICE_CHECK_NAME,
                     AgentCheck.CRITICAL,
                     tags=tags,
-                    message=f"Ping to {host} failed (exit code {result.returncode})",
+                    message="Ping to {0} failed (exit code {1})".format(host, result.returncode),
                 )
 
         except subprocess.TimeoutExpired:
@@ -63,7 +65,7 @@ class PingCheck(AgentCheck):
                 self.SERVICE_CHECK_NAME,
                 AgentCheck.CRITICAL,
                 tags=tags,
-                message=f"Ping to {host} timed out after {timeout}s",
+                message="Ping to {0} timed out after {1}s".format(host, timeout),
             )
         except Exception as e:
             self.service_check(
