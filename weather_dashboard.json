@@ -1,0 +1,177 @@
+{
+  "title": "🌤 Home — Eltham, VIC Weather",
+  "description": "Current weather conditions for Eltham, Victoria pulled from OpenWeatherMap via a custom Datadog Agent check.",
+  "widgets": [
+    {
+      "id": 1,
+      "definition": {
+        "type": "query_value",
+        "title": "🌡 Temperature (°C)",
+        "title_size": "16",
+        "title_align": "center",
+        "requests": [
+          {
+            "q": "avg:weather.temperature{city:Eltham,AU}",
+            "aggregator": "last"
+          }
+        ],
+        "autoscale": true,
+        "precision": 1,
+        "custom_unit": "°C"
+      },
+      "layout": { "x": 0, "y": 0, "width": 2, "height": 2 }
+    },
+    {
+      "id": 2,
+      "definition": {
+        "type": "query_value",
+        "title": "🤔 Feels Like (°C)",
+        "title_size": "16",
+        "title_align": "center",
+        "requests": [
+          {
+            "q": "avg:weather.feels_like{city:Eltham,AU}",
+            "aggregator": "last"
+          }
+        ],
+        "autoscale": true,
+        "precision": 1,
+        "custom_unit": "°C"
+      },
+      "layout": { "x": 2, "y": 0, "width": 2, "height": 2 }
+    },
+    {
+      "id": 3,
+      "definition": {
+        "type": "query_value",
+        "title": "💧 Humidity (%)",
+        "title_size": "16",
+        "title_align": "center",
+        "requests": [
+          {
+            "q": "avg:weather.humidity{city:Eltham,AU}",
+            "aggregator": "last"
+          }
+        ],
+        "autoscale": true,
+        "precision": 0,
+        "custom_unit": "%"
+      },
+      "layout": { "x": 4, "y": 0, "width": 2, "height": 2 }
+    },
+    {
+      "id": 4,
+      "definition": {
+        "type": "query_value",
+        "title": "💨 Wind Speed (m/s)",
+        "title_size": "16",
+        "title_align": "center",
+        "requests": [
+          {
+            "q": "avg:weather.wind_speed{city:Eltham,AU}",
+            "aggregator": "last"
+          }
+        ],
+        "autoscale": true,
+        "precision": 1,
+        "custom_unit": "m/s"
+      },
+      "layout": { "x": 6, "y": 0, "width": 2, "height": 2 }
+    },
+    {
+      "id": 5,
+      "definition": {
+        "type": "query_value",
+        "title": "☁️ Cloud Cover (%)",
+        "title_size": "16",
+        "title_align": "center",
+        "requests": [
+          {
+            "q": "avg:weather.cloud_cover{city:Eltham,AU}",
+            "aggregator": "last"
+          }
+        ],
+        "autoscale": true,
+        "precision": 0,
+        "custom_unit": "%"
+      },
+      "layout": { "x": 8, "y": 0, "width": 2, "height": 2 }
+    },
+    {
+      "id": 6,
+      "definition": {
+        "type": "timeseries",
+        "title": "🌡 Temperature over time",
+        "title_size": "16",
+        "title_align": "left",
+        "requests": [
+          {
+            "q": "avg:weather.temperature{city:Eltham,AU}",
+            "display_type": "line",
+            "style": { "palette": "warm", "line_type": "solid", "line_width": "normal" }
+          },
+          {
+            "q": "avg:weather.temp_min{city:Eltham,AU}",
+            "display_type": "line",
+            "style": { "palette": "cool", "line_type": "dashed", "line_width": "thin" }
+          },
+          {
+            "q": "avg:weather.temp_max{city:Eltham,AU}",
+            "display_type": "line",
+            "style": { "palette": "orange", "line_type": "dashed", "line_width": "thin" }
+          }
+        ],
+        "yaxis": { "label": "°C" },
+        "show_legend": true
+      },
+      "layout": { "x": 0, "y": 2, "width": 6, "height": 3 }
+    },
+    {
+      "id": 7,
+      "definition": {
+        "type": "timeseries",
+        "title": "💧 Humidity & ☁️ Cloud Cover over time",
+        "title_size": "16",
+        "title_align": "left",
+        "requests": [
+          {
+            "q": "avg:weather.humidity{city:Eltham,AU}",
+            "display_type": "area",
+            "style": { "palette": "blue", "line_type": "solid", "line_width": "normal" }
+          },
+          {
+            "q": "avg:weather.cloud_cover{city:Eltham,AU}",
+            "display_type": "area",
+            "style": { "palette": "grey", "line_type": "solid", "line_width": "normal" }
+          }
+        ],
+        "yaxis": { "label": "%", "min": "0", "max": "100" },
+        "show_legend": true
+      },
+      "layout": { "x": 6, "y": 2, "width": 6, "height": 3 }
+    },
+    {
+      "id": 8,
+      "definition": {
+        "type": "timeseries",
+        "title": "💨 Wind Speed over time",
+        "title_size": "16",
+        "title_align": "left",
+        "requests": [
+          {
+            "q": "avg:weather.wind_speed{city:Eltham,AU}",
+            "display_type": "bars",
+            "style": { "palette": "purple", "line_type": "solid", "line_width": "normal" }
+          }
+        ],
+        "yaxis": { "label": "m/s" },
+        "show_legend": false
+      },
+      "layout": { "x": 0, "y": 5, "width": 12, "height": 3 }
+    }
+  ],
+  "template_variables": [],
+  "layout_type": "free",
+  "is_read_only": false,
+  "notify_list": []
+}

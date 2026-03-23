@@ -1,0 +1,24 @@
+{
+  "name": "[Home] Internet Ping — Packet Loss to 8.8.8.8",
+  "type": "metric alert",
+  "query": "avg(last_5m):avg:network.ping.packet_loss{target_host:8.8.8.8} > 20",
+  "message": "## Packet loss detected!\n\nPacket loss to 8.8.8.8 is above threshold over the last 5 minutes.\n\n- **Warning** (>5%): Minor instability\n- **Critical** (>20%): Significant packet loss — internet connection may be dropping\n\nCheck your router and ISP connection.\n\n@julian.garreffa@datadoghq.com",
+  "tags": [
+    "env:home",
+    "check_name:internet_quality",
+    "team:home-infra"
+  ],
+  "options": {
+    "thresholds": {
+      "critical": 20,
+      "warning": 5
+    },
+    "notify_no_data": true,
+    "no_data_timeframe": 10,
+    "renotify_interval": 60,
+    "include_tags": true,
+    "notify_audit": false,
+    "require_full_window": false,
+    "evaluation_delay": 0
+  }
+}

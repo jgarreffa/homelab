@@ -1,0 +1,11 @@
+## Datadog Agent configuration for the weather_check custom check.
+## Place this file at: /etc/datadog-agent/conf.d/weather_check.yaml
+
+init_config:
+
+instances:
+  - city: "Eltham,AU"                  # OpenWeatherMap city string
+    api_key: "YOUR_OPENWEATHERMAP_API_KEY"   # <-- replace with your key
+    tags:
+      - "env:home"
+      - "location:eltham-vic"

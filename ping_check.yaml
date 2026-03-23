@@ -1,0 +1,21 @@
+## Datadog Agent configuration for the ping_check custom check.
+## Place this file at: /etc/datadog-agent/conf.d/ping_check.yaml
+
+init_config:
+
+instances:
+  ## Primary internet quality check — Google DNS
+  - host: 8.8.8.8
+    count: 5        # number of pings per run
+    timeout: 30     # seconds before the check gives up
+    tags:
+      - "check_name:internet_quality"
+      - "env:home"
+
+  ## Optional: secondary target for comparison (Cloudflare DNS)
+  # - host: 1.1.1.1
+  #   count: 5
+  #   timeout: 30
+  #   tags:
+  #     - "check_name:internet_quality"
+  #     - "env:home"
