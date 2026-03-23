@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import subprocess
 import re
 from datadog_checks.base import AgentCheck
@@ -7,7 +8,8 @@ __version__ = "1.0.0"
 
 class PingCheck(AgentCheck):
     """
-    Custom Datadog Agent check that pings a host and submits:
+    Custom Datadog Agent check (Python 2.7 compatible) that pings a host
+    and submits:
       - network.ping.avg_rtt     (ms)
       - network.ping.min_rtt     (ms)
       - network.ping.max_rtt     (ms)
@@ -18,20 +20,23 @@ class PingCheck(AgentCheck):
     SERVICE_CHECK_NAME = "network.ping.can_connect"
 
     def check(self, instance):
-        host    = instance.get("host", "8.8.8.8")
-        count   = int(instance.get("count", 5))
-        timeout = int(instance.get("timeout", 30))
-        tags    = instance.get("tags", []) + ["target_host:{0}".format(host)]
+        host  = instance.get("host", "8.8.8.8")
+        count = int(instance.get("count", 5))
+        tags  = instance.get("tags", []) + ["target_host:{0}".format(host)]
 
         try:
-            result = subprocess.run(
+            # subprocess.run() does not exist in Python 2.7 — use Popen instead.
+            # -W 5 tells ping to wait max 5s per packet, so the check is self-bounding.
+            proc = subprocess.Popen(
                 ["ping", "-c", str(count), "-W", "5", host],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                timeout=timeout,
             )
+            output, _ = proc.communicate()
 
-            output = result.stdout.decode("utf-8")
+            # In Python 2.7 communicate() returns bytes, decode to str
+            if isinstance(output, bytes):
+                output = output.decode("utf-8")
 
             # Parse RTT stats: rtt min/avg/max/mdev = 10.1/12.4/15.7/1.2 ms
             rtt_match = re.search(
@@ -50,23 +55,16 @@ class PingCheck(AgentCheck):
                     "network.ping.packet_loss", float(loss_match.group(1)), tags=tags
                 )
 
-            if result.returncode == 0:
+            if proc.returncode == 0:
                 self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=tags)
             else:
                 self.service_check(
                     self.SERVICE_CHECK_NAME,
                     AgentCheck.CRITICAL,
                     tags=tags,
-                    message="Ping to {0} failed (exit code {1})".format(host, result.returncode),
+                    message="Ping to {0} failed (exit code {1})".format(host, proc.returncode),
                 )
 
-        except subprocess.TimeoutExpired:
-            self.service_check(
-                self.SERVICE_CHECK_NAME,
-                AgentCheck.CRITICAL,
-                tags=tags,
-                message="Ping to {0} timed out after {1}s".format(host, timeout),
-            )
         except Exception as e:
             self.service_check(
                 self.SERVICE_CHECK_NAME,
