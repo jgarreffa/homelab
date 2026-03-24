@@ -11,7 +11,7 @@
         "title_align": "center",
         "requests": [
           {
-            "q": "avg:weather.temperature{city:Eltham,AU}",
+            "q": "avg:weather.temperature{location:eltham-vic}",
             "aggregator": "last"
           }
         ],
@@ -30,7 +30,7 @@
         "title_align": "center",
         "requests": [
           {
-            "q": "avg:weather.feels_like{city:Eltham,AU}",
+            "q": "avg:weather.feels_like{location:eltham-vic}",
             "aggregator": "last"
           }
         ],
@@ -49,7 +49,7 @@
         "title_align": "center",
         "requests": [
           {
-            "q": "avg:weather.humidity{city:Eltham,AU}",
+            "q": "avg:weather.humidity{location:eltham-vic}",
             "aggregator": "last"
           }
         ],
@@ -68,7 +68,7 @@
         "title_align": "center",
         "requests": [
           {
-            "q": "avg:weather.wind_speed{city:Eltham,AU}",
+            "q": "avg:weather.wind_speed{location:eltham-vic}",
             "aggregator": "last"
           }
         ],
@@ -87,7 +87,7 @@
         "title_align": "center",
         "requests": [
           {
-            "q": "avg:weather.cloud_cover{city:Eltham,AU}",
+            "q": "avg:weather.cloud_cover{location:eltham-vic}",
             "aggregator": "last"
           }
         ],
@@ -106,17 +106,17 @@
         "title_align": "left",
         "requests": [
           {
-            "q": "avg:weather.temperature{city:Eltham,AU}",
+            "q": "avg:weather.temperature{location:eltham-vic}",
             "display_type": "line",
             "style": { "palette": "warm", "line_type": "solid", "line_width": "normal" }
           },
           {
-            "q": "avg:weather.temp_min{city:Eltham,AU}",
+            "q": "avg:weather.temp_min{location:eltham-vic}",
             "display_type": "line",
             "style": { "palette": "cool", "line_type": "dashed", "line_width": "thin" }
           },
           {
-            "q": "avg:weather.temp_max{city:Eltham,AU}",
+            "q": "avg:weather.temp_max{location:eltham-vic}",
             "display_type": "line",
             "style": { "palette": "orange", "line_type": "dashed", "line_width": "thin" }
           }
@@ -135,12 +135,12 @@
         "title_align": "left",
         "requests": [
           {
-            "q": "avg:weather.humidity{city:Eltham,AU}",
+            "q": "avg:weather.humidity{location:eltham-vic}",
             "display_type": "area",
             "style": { "palette": "blue", "line_type": "solid", "line_width": "normal" }
           },
           {
-            "q": "avg:weather.cloud_cover{city:Eltham,AU}",
+            "q": "avg:weather.cloud_cover{location:eltham-vic}",
             "display_type": "area",
             "style": { "palette": "grey", "line_type": "solid", "line_width": "normal" }
           }
@@ -159,7 +159,7 @@
         "title_align": "left",
         "requests": [
           {
-            "q": "avg:weather.wind_speed{city:Eltham,AU}",
+            "q": "avg:weather.wind_speed{location:eltham-vic}",
             "display_type": "bars",
             "style": { "palette": "purple", "line_type": "solid", "line_width": "normal" }
           }
@@ -171,7 +171,7 @@
     }
   ],
   "template_variables": [],
-  "layout_type": "free",
+  "layout_type": "ordered",
   "is_read_only": false,
   "notify_list": []
 }

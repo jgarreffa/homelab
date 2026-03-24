@@ -1,0 +1,21 @@
+{
+  "name": "[Home] Hurstbridge Line — Active Disruptions",
+  "type": "service check",
+  "query": "\"ptv.disruptions.status\".over(\"route:hurstbridge\").last(2).count_by_status()",
+  "message": "## Hurstbridge line disruption detected!\n\nThere are active disruptions on the Hurstbridge line.\n\nCheck https://www.ptv.vic.gov.au/disruptions for details.\n\n@julian.garreffa@datadoghq.com",
+  "tags": [
+    "env:home",
+    "line:hurstbridge"
+  ],
+  "options": {
+    "thresholds": {
+      "warning": 1,
+      "critical": 1,
+      "ok": 1
+    },
+    "notify_no_data": true,
+    "no_data_timeframe": 15,
+    "renotify_interval": 60,
+    "include_tags": true
+  }
+}

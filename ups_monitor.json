@@ -1,0 +1,21 @@
+{
+  "name": "[Home] UPS — Power Loss or Low Battery",
+  "type": "service check",
+  "query": "\"ups.status\".over(\"device:digitech-ups\").last(2).count_by_status()",
+  "message": "## UPS Alert!\n\n{{#is_warning}}\nUPS is running on **battery power** — mains power has been lost!\nCheck your power supply immediately.\n{{/is_warning}}\n\n{{#is_alert}}\nUPS battery is **critically low** — system may shut down soon!\nTake action immediately.\n{{/is_alert}}\n\n{{#is_recovery}}\nUPS has returned to mains power.\n{{/is_recovery}}\n\n@julian.garreffa@datadoghq.com",
+  "tags": [
+    "env:home",
+    "device:digitech-ups"
+  ],
+  "options": {
+    "thresholds": {
+      "warning": 1,
+      "critical": 1,
+      "ok": 1
+    },
+    "notify_no_data": true,
+    "no_data_timeframe": 10,
+    "renotify_interval": 15,
+    "include_tags": true
+  }
+}

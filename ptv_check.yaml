@@ -1,0 +1,30 @@
+## Datadog Agent configuration for the ptv_check custom check.
+## Place this file at: /etc/datadog-agent/conf.d/ptv_check.yaml
+##
+## To get your PTV API credentials (free):
+##   1. Email api@ptv.vic.gov.au with your name and intended use
+##   2. You will receive a dev_id and api_key
+##
+## To find stop IDs:
+##   Use the PTV API health check + stops endpoint, or look them up at:
+##   https://www.ptv.vic.gov.au/api-explorer/
+
+init_config:
+
+instances:
+  - dev_id:   "YOUR_PTV_DEV_ID"       # <-- replace
+    api_key:  "YOUR_PTV_API_KEY"      # <-- replace
+    route_id: 12                       # Hurstbridge line
+
+    stops:
+      - stop_id: 1041                  # Eltham station
+        name: "Eltham"
+        direction: inbound             # towards Flinders St / City Loop
+
+      - stop_id: 1155                  # Parliament station
+        name: "Parliament"
+        direction: outbound            # towards Hurstbridge
+
+    tags:
+      - "env:home"
+      - "line:hurstbridge"
