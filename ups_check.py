@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import array
 import struct
 import fcntl
 from datadog_checks.base import AgentCheck
@@ -52,10 +53,10 @@ class UpsCheck(AgentCheck):
             # This polls the device immediately rather than waiting for it to send data
             fd = os.open(device, os.O_RDWR)
             try:
-                buf = bytearray(64)
+                buf = array.array('B', [0] * 64)
                 buf[0] = 0  # report ID 0
-                fcntl.ioctl(fd, HIDIOCGFEATURE, buf)
-                data = bytes(buf)
+                fcntl.ioctl(fd, HIDIOCGFEATURE, buf, True)
+                data = buf.tostring()
             finally:
                 os.close(fd)
 
