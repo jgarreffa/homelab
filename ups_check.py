@@ -1,8 +1,15 @@
 # -*- coding: utf-8 -*-
 import os
-import select
 import struct
+import fcntl
 from datadog_checks.base import AgentCheck
+
+# ioctl to actively request a HID feature report from the device
+# HIDIOCGFEATURE(64) - polls the device rather than waiting for it to send data
+def _IOWR(type_char, number, size):
+    return (3 << 30) | (size << 16) | (type_char << 8) | number
+
+HIDIOCGFEATURE = _IOWR(ord('H'), 0x07, 64)
 
 __version__ = "1.0.0"
 
@@ -41,19 +48,14 @@ class UpsCheck(AgentCheck):
         tags   = instance.get("tags", []) + ["device:digitech-ups"]
 
         try:
-            # Read raw HID report from UPS with 5 second timeout
-            fd = os.open(device, os.O_RDONLY | os.O_NONBLOCK)
+            # Actively request a HID feature report via ioctl
+            # This polls the device immediately rather than waiting for it to send data
+            fd = os.open(device, os.O_RDWR)
             try:
-                ready, _, _ = select.select([fd], [], [], 5)
-                if not ready:
-                    self.service_check(
-                        self.DEVICE_SERVICE_CHECK,
-                        AgentCheck.CRITICAL,
-                        tags=tags,
-                        message="Timed out waiting for data from UPS device {0}".format(device),
-                    )
-                    return
-                data = os.read(fd, 64)
+                buf = bytearray(64)
+                buf[0] = 0  # report ID 0
+                fcntl.ioctl(fd, HIDIOCGFEATURE, buf)
+                data = bytes(buf)
             finally:
                 os.close(fd)
 
