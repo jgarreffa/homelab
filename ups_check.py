@@ -1,133 +1,114 @@
 # -*- coding: utf-8 -*-
+import os
+import struct
 import subprocess
-import re
 from datadog_checks.base import AgentCheck
 
 __version__ = "1.0.0"
 
+# HID report byte positions for common generic UPS devices
+# These are standard positions for CyberPower/generic HID UPS units
+STATUS_BYTE    = 0
+CHARGE_BYTE    = 2
+RUNTIME_BYTE   = 4
+
+# Status flags
+FLAG_ON_BATTERY = 0x02
+FLAG_LOW_BATTERY = 0x04
+FLAG_CHARGING   = 0x10
+
 
 class UpsCheck(AgentCheck):
     """
-    Custom Datadog Agent check (Python 2.7 compatible) that queries NUT
-    (Network UPS Tools) via the upsc command and submits:
+    Custom Datadog Agent check (Python 2.7 compatible).
+    Reads UPS data directly from /dev/hidraw without needing NUT.
 
-      - ups.battery.charge      (percent)
-      - ups.battery.runtime     (seconds)
-      - ups.battery.voltage     (V)
-      - ups.input.voltage       (V)
-      - ups.output.voltage      (V)
-      - ups.load                (percent)
+    Submits:
+      - ups.battery.charge     (percent)
+      - ups.on_mains           (1 = mains, 0 = on battery)
+      - ups.battery.low        (1 = low battery, 0 = ok)
 
     Service checks:
-      - ups.status              OK (on mains) / CRITICAL (on battery / low battery)
-      - ups.nut.can_connect     OK / CRITICAL
+      - ups.status             OK / WARNING / CRITICAL
+      - ups.device.can_connect OK / CRITICAL
     """
 
-    STATUS_SERVICE_CHECK  = "ups.status"
-    NUT_SERVICE_CHECK     = "ups.nut.can_connect"
-
-    # NUT status flags
-    STATUS_ONLINE       = "OL"   # On Line (mains power)
-    STATUS_ON_BATTERY   = "OB"   # On Battery
-    STATUS_LOW_BATTERY  = "LB"   # Low Battery
-    STATUS_CHARGING     = "CHRG" # Charging
-    STATUS_DISCHARGING  = "DISCHRG"
+    STATUS_SERVICE_CHECK = "ups.status"
+    DEVICE_SERVICE_CHECK = "ups.device.can_connect"
 
     def check(self, instance):
-        ups_name = instance.get("ups_name", "ups")
-        host     = instance.get("host", "localhost")
-        port     = instance.get("port", 3493)
-        tags     = instance.get("tags", []) + ["ups:{0}".format(ups_name)]
-
-        target = "{0}@{1}:{2}".format(ups_name, host, port)
+        device = instance.get("device", "/dev/hidraw0")
+        tags   = instance.get("tags", []) + ["device:digitech-ups"]
 
         try:
-            proc = subprocess.Popen(
-                ["upsc", target],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            output, err = proc.communicate()
+            # Read raw HID report from UPS
+            fd = os.open(device, os.O_RDONLY | os.O_NONBLOCK)
+            try:
+                data = os.read(fd, 64)
+            finally:
+                os.close(fd)
 
-            if isinstance(output, bytes):
-                output = output.decode("utf-8")
-            if isinstance(err, bytes):
-                err = err.decode("utf-8")
-
-            if proc.returncode != 0:
+            if not data or len(data) < 5:
                 self.service_check(
-                    self.NUT_SERVICE_CHECK,
+                    self.DEVICE_SERVICE_CHECK,
                     AgentCheck.CRITICAL,
                     tags=tags,
-                    message="upsc failed: {0}".format(err.strip()),
+                    message="No data returned from UPS device {0}".format(device),
                 )
                 return
 
-            self.service_check(self.NUT_SERVICE_CHECK, AgentCheck.OK, tags=tags)
+            self.service_check(self.DEVICE_SERVICE_CHECK, AgentCheck.OK, tags=tags)
 
-            # Parse key/value pairs from upsc output
-            data = {}
-            for line in output.splitlines():
-                if ":" in line:
-                    key, _, value = line.partition(":")
-                    data[key.strip()] = value.strip()
+            # Parse bytes
+            raw = struct.unpack("B" * len(data), data)
 
-            # --- Metrics ---
-            def submit_gauge(metric, nut_key):
-                val = data.get(nut_key)
-                if val is not None:
-                    try:
-                        self.gauge(metric, float(val), tags=tags)
-                    except ValueError:
-                        pass
+            status_byte  = raw[STATUS_BYTE]
+            charge       = raw[CHARGE_BYTE] if len(raw) > CHARGE_BYTE else None
+            runtime_raw  = raw[RUNTIME_BYTE] if len(raw) > RUNTIME_BYTE else None
 
-            submit_gauge("ups.battery.charge",   "battery.charge")
-            submit_gauge("ups.battery.runtime",  "battery.runtime")
-            submit_gauge("ups.battery.voltage",  "battery.voltage")
-            submit_gauge("ups.input.voltage",    "input.voltage")
-            submit_gauge("ups.output.voltage",   "output.voltage")
-            submit_gauge("ups.load",             "ups.load")
+            on_battery  = 1 if (status_byte & FLAG_ON_BATTERY) else 0
+            low_battery = 1 if (status_byte & FLAG_LOW_BATTERY) else 0
+            on_mains    = 0 if on_battery else 1
 
-            # --- Service check based on UPS status ---
-            status = data.get("ups.status", "")
+            self.gauge("ups.on_mains",       on_mains,    tags=tags)
+            self.gauge("ups.battery.low",    low_battery, tags=tags)
 
-            if self.STATUS_LOW_BATTERY in status:
+            if charge is not None:
+                self.gauge("ups.battery.charge", charge, tags=tags)
+
+            if runtime_raw is not None:
+                self.gauge("ups.battery.runtime", runtime_raw * 60, tags=tags)
+
+            # Log raw bytes to help calibrate if values look wrong
+            self.log.debug("UPS raw HID bytes: {0}".format(list(raw[:10])))
+
+            # Service check
+            if low_battery:
                 self.service_check(
                     self.STATUS_SERVICE_CHECK,
                     AgentCheck.CRITICAL,
                     tags=tags,
-                    message="UPS battery is LOW — status: {0}".format(status),
+                    message="UPS battery is LOW and on battery power!",
                 )
-            elif self.STATUS_ON_BATTERY in status:
+            elif on_battery:
                 self.service_check(
                     self.STATUS_SERVICE_CHECK,
                     AgentCheck.WARNING,
                     tags=tags,
-                    message="UPS is running on battery — status: {0}".format(status),
-                )
-            elif self.STATUS_ONLINE in status:
-                self.service_check(
-                    self.STATUS_SERVICE_CHECK,
-                    AgentCheck.OK,
-                    tags=tags,
-                    message="UPS on mains power — status: {0}".format(status),
+                    message="UPS is running on battery — mains power lost",
                 )
             else:
                 self.service_check(
                     self.STATUS_SERVICE_CHECK,
-                    AgentCheck.UNKNOWN,
+                    AgentCheck.OK,
                     tags=tags,
-                    message="Unknown UPS status: {0}".format(status),
+                    message="UPS on mains power, battery charge: {0}%".format(charge),
                 )
 
-            # Submit status as a gauge too (1 = online, 0 = on battery)
-            on_mains = 1 if self.STATUS_ONLINE in status else 0
-            self.gauge("ups.on_mains", on_mains, tags=tags)
-
-        except Exception as e:
+        except OSError as e:
             self.service_check(
-                self.NUT_SERVICE_CHECK,
+                self.DEVICE_SERVICE_CHECK,
                 AgentCheck.CRITICAL,
                 tags=tags,
-                message=str(e),
+                message="Cannot open UPS device {0}: {1}".format(device, str(e)),
             )

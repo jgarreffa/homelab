@@ -1,48 +1,19 @@
 ## Datadog Agent configuration for the ups_check custom check.
 ## Place this file at: /etc/datadog-agent/conf.d/ups_check.yaml
 ##
-## Prerequisites — install and configure NUT first:
+## No NUT required — reads directly from the HID device.
 ##
-##   sudo apt install nut nut-client
+## To find your hidraw device:
+##   ls -la /dev/hidraw*
 ##
-## Then configure NUT to talk to your Digitech UPS:
-##
-## 1. Find the USB device:
-##      lsusb
-##    Look for something like "Cypress Semiconductor" or "HID UPS Battery"
-##
-## 2. Edit /etc/nut/ups.conf and add:
-##      [ups]
-##      driver = usbhid-ups
-##      port = auto
-##      desc = "Digitech UPS"
-##
-## 3. Edit /etc/nut/nut.conf and set:
-##      MODE=standalone
-##
-## 4. Edit /etc/nut/upsd.conf and add:
-##      LISTEN 127.0.0.1 3493
-##
-## 5. Edit /etc/nut/upsd.users and add:
-##      [admin]
-##      password = secret
-##      actions = SET
-##      instcmds = ALL
-##
-## 6. Start NUT:
-##      sudo systemctl enable nut-server nut-client
-##      sudo systemctl start nut-server nut-client
-##
-## 7. Test it works:
-##      upsc ups@localhost
-##    You should see battery.charge, ups.status etc.
+## To fix permissions so the Agent can read it:
+##   sudo chmod a+r /dev/hidraw0
+##   (or add dd-agent user to the right group)
 
 init_config:
 
 instances:
-  - ups_name: "ups"         # must match the name in /etc/nut/ups.conf
-    host: "localhost"
-    port: 3493
+  - device: "/dev/hidraw0"
     tags:
       - "env:home"
       - "device:digitech-ups"
