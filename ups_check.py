@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
+import select
 import struct
-import subprocess
 from datadog_checks.base import AgentCheck
 
 __version__ = "1.0.0"
@@ -41,9 +41,18 @@ class UpsCheck(AgentCheck):
         tags   = instance.get("tags", []) + ["device:digitech-ups"]
 
         try:
-            # Read raw HID report from UPS
-            fd = os.open(device, os.O_RDONLY)
+            # Read raw HID report from UPS with 5 second timeout
+            fd = os.open(device, os.O_RDONLY | os.O_NONBLOCK)
             try:
+                ready, _, _ = select.select([fd], [], [], 5)
+                if not ready:
+                    self.service_check(
+                        self.DEVICE_SERVICE_CHECK,
+                        AgentCheck.CRITICAL,
+                        tags=tags,
+                        message="Timed out waiting for data from UPS device {0}".format(device),
+                    )
+                    return
                 data = os.read(fd, 64)
             finally:
                 os.close(fd)
