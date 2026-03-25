@@ -42,7 +42,7 @@ class UpsCheck(AgentCheck):
 
         try:
             # Read raw HID report from UPS
-            fd = os.open(device, os.O_RDONLY | os.O_NONBLOCK)
+            fd = os.open(device, os.O_RDONLY)
             try:
                 data = os.read(fd, 64)
             finally:
